@@ -1,0 +1,11 @@
+{
+  "name": "weather_skill",
+  "version": "0.1.0",
+  "description": "Example skill stub (replace with real logic).",
+  "entry": "main:run",
+  "capabilities": {
+    "network": false,
+    "browser": false
+  }
+}
+

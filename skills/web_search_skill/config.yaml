@@ -1,0 +1,19 @@
+﻿# Wrapper around RPASkill (TypeScript) webSearch.
+
+query: "AI multi-agent collaboration"
+engine: bing
+pages: 2
+perPage: 10
+details: 0
+
+# Browser
+headless: false
+channel: msedge
+
+# Optional screenshots (recommended for traceability)
+# screenshotPrefix: "D:\\Skill\\SkillBox\\my-skill-platform\\outputs\\...\\screenshots\\search"
+# openScreenshotPrefix: "D:\\Skill\\SkillBox\\my-skill-platform\\outputs\\...\\screenshots\\open"
+# openScreenshotFullPage: true
+
+
+

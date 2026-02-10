@@ -1,0 +1,2 @@
+"""Weather skill package (example)."""
+

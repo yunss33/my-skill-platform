@@ -1,0 +1,23 @@
+{
+  "name": "rpa_ts_skill",
+  "version": "0.3.0",
+  "description": "RPA bridge (Node/TS + Playwright). Supports browser-based search + page inspection with screenshot/HTML/UI-map artifacts, trace logs, and a reusable session mode (keep a visible browser open across multiple runs for human-in-the-loop login/captcha).",
+  "entry": "main:run",
+  "interfaces": {
+    "actions": [
+      "webSearch",
+      "adaptiveSearch",
+      "inspectPage",
+      "searchOnSite"
+    ]
+  },
+  "artifacts": {
+    "trace": "outputs/<skill>/<run_id>/agents/<agent>/rpa_trace.jsonl",
+    "captures": "outputs/<skill>/<run_id>/agents/<agent>/captures/*"
+  },
+  "capabilities": {
+    "network": true,
+    "browser": true,
+    "node": true
+  }
+}

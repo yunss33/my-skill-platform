@@ -1,0 +1,17 @@
+{
+  "query": "AI 多智能体 如何 像 蚂蚁 一样 共同 协作",
+  "goal": "technical",
+  "language": "auto",
+  "engine": "bing",
+  "pages": 2,
+  "perPage": 10,
+  "details": 0,
+  "minResults": 5,
+  "maxRounds": 2,
+  "strictKeywords": false,
+  "logEnabled": true,
+  "logFormat": "json",
+  "logIncludeResults": true,
+  "logIncludeSnippets": true,
+  "logMaxResults": 5
+}

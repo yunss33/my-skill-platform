@@ -1,0 +1,15 @@
+{
+  "name": "adaptive_search_skill",
+  "version": "0.2.0",
+  "description": "Multi-round, traceable browser search skill (TS/Playwright). Iterates queries, logs each round, and saves screenshots/trace for audit and later AI review.",
+  "entry": "main:run",
+  "artifacts": {
+    "screenshots": "outputs/<skill>/<run_id>/agents/<agent>/screenshots/*.png",
+    "trace": "outputs/<skill>/<run_id>/agents/<agent>/rpa_trace.jsonl"
+  },
+  "capabilities": {
+    "network": true,
+    "browser": true,
+    "node": true
+  }
+}

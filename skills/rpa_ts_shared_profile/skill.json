@@ -1,0 +1,12 @@
+{
+  "name": "rpa_ts_shared_profile",
+  "version": "0.1.0",
+  "description": "RPA (Node/TS + Playwright) using a fixed persistent browser profile under runtime/deps/. Best for reusing logins across runs/days; supports session mode to keep a visible browser open.",
+  "entry": "main:run",
+  "capabilities": {
+    "network": true,
+    "browser": true,
+    "node": true
+  }
+}
+

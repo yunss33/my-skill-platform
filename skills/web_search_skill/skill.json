@@ -1,0 +1,15 @@
+{
+  "name": "web_search_skill",
+  "version": "0.2.0",
+  "description": "Browser-based web search skill (TS/Playwright). Captures rendered-page screenshots + step-by-step trace for reproducible, AI-queryable runs.",
+  "entry": "main:run",
+  "artifacts": {
+    "screenshots": "outputs/<skill>/<run_id>/agents/<agent>/screenshots/*.png",
+    "trace": "outputs/<skill>/<run_id>/agents/<agent>/rpa_trace.jsonl"
+  },
+  "capabilities": {
+    "network": true,
+    "browser": true,
+    "node": true
+  }
+}

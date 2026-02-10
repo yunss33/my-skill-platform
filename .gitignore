@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+logs/
+outputs/
+
+# Runtime deps (shared venv, browsers, persistent profiles)
+runtime/deps/
+
+# TypeScript integration (RPASkill) build/install outputs
+integrations/rpaskill_ts/node_modules/
+integrations/rpaskill_ts/.cache/
+integrations/rpaskill_ts/artifacts/
+
+# Legacy location (if present)
+vendor/RPASkill/node_modules/
+vendor/RPASkill/.cache/
+vendor/RPASkill/artifacts/

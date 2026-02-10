@@ -1,0 +1,5 @@
+interface:
+  display_name: "RPA Web Automation"
+  short_description: "Playwright automation in this repo: navigate, interact, extract, orchestrate"
+  default_prompt: "Use $rpa-web-automation to add or update Playwright automation flows, examples, or core utilities in this repo."
+

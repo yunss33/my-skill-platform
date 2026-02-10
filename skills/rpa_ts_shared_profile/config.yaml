@@ -1,0 +1,31 @@
+# Variant A: shared-profile RPA (persistent across runs)
+#
+# Typical usage:
+# 1) Start browser once:
+#    python run.py --skill rpa_ts_shared_profile --run-id jd --set session.command=start
+# 2) Run actions (reuse same browser/login):
+#    python run.py --skill rpa_ts_shared_profile --run-id jd --set action=inspectPage --set url=https://www.jd.com
+# 3) Close browser:
+#    python run.py --skill rpa_ts_shared_profile --run-id jd --set session.command=close
+
+action: inspectPage
+
+session:
+  enabled: true
+  command: call # start | call | status | close
+  userDataScope: shared
+
+# Browser options
+headless: false
+channel: msedge
+
+# inspectPage defaults
+url: "https://www.jd.com"
+waitUntil: "domcontentloaded"
+waitForSelector: "body"
+captureFullPage: true
+includeHtml: true
+includeElements: true
+includeAccessibility: false
+detectBlockers: true
+

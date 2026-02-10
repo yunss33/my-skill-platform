@@ -1,0 +1,27 @@
+﻿# Wrapper around RPASkill (TypeScript) adaptiveSearch.
+
+query: "AI multi-agent collaboration"
+goal: auto
+language: auto
+engine: bing
+pages: 2
+perPage: 10
+details: 0
+minResults: 5
+maxRounds: 2
+
+# Audit logs produced by TS layer (optional)
+logEnabled: true
+logFormat: jsonl
+
+# Browser
+headless: false
+channel: msedge
+
+# Optional screenshots (recommended for traceability)
+# screenshotPrefix: "D:\\Skill\\SkillBox\\my-skill-platform\\outputs\\...\\screenshots\\search"
+# openScreenshotPrefix: "D:\\Skill\\SkillBox\\my-skill-platform\\outputs\\...\\screenshots\\open"
+# openScreenshotFullPage: true
+
+
+

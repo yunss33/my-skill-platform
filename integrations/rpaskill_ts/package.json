@@ -1,0 +1,34 @@
+{
+  "name": "rpaskill",
+  "version": "1.0.0",
+  "description": "RPA skill for web page manipulation",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "adaptive": "node examples/run-adaptive-search.js",
+    "search": "node examples/search-cli.js",
+    "pw": "node scripts/playwright.mjs",
+    "pw:install": "node scripts/playwright.mjs install",
+    "test": "node scripts/playwright.mjs test",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "rpa",
+    "web",
+    "automation",
+    "playwright"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "playwright": "^1.44.0"
+  }
+}

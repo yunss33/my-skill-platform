@@ -1,0 +1,15 @@
+﻿# JD aircon price skill (human-in-the-loop)
+
+keyword: "空调"
+limit: 12
+
+# Browser (visible by default)
+headless: false
+channel: msedge
+slowMo: 150
+args:
+  - "--start-maximized"
+
+# Human-in-the-loop (JD frequently shows risk verification pages)
+pauseForHuman: true
+pauseTimeoutMs: 0

@@ -1,0 +1,27 @@
+{
+  "action": "searchOnSite",
+  "query": "苹果15手机",
+  "url": "https://www.jd.com",
+  "searchInput": "#key",
+  "searchButton": ".button",
+  "resultsWaitFor": ".gl-item",
+  "waitForLoadState": "networkidle",
+  "limit": 10,
+  "list": {
+    "itemSelector": ".gl-item",
+    "fields": {
+      "title": {
+        "selector": ".p-name em",
+        "attr": "text"
+      },
+      "price": {
+        "selector": ".p-price i",
+        "attr": "text"
+      },
+      "link": {
+        "selector": ".p-name a",
+        "attr": "href"
+      }
+    }
+  }
+}

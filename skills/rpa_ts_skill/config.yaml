@@ -1,0 +1,42 @@
+# action: adaptiveSearch | webSearch | searchOnSite | inspectPage
+action: inspectPage
+
+# Session mode (optional): keep a single visible browser open across multiple invocations
+# within the same run_id. Session metadata is stored under:
+#   outputs/<skill>/<run_id>/shared/rpa_ts_session.json
+#
+# session:
+#   enabled: true
+#   command: start   # start | call | status | close
+#   userDataScope: shared  # shared | agent
+#   # port: 38200
+
+# Required for webSearch/adaptiveSearch
+query: "2026年1月1日 新闻联播 讲了什么"
+
+# Browser options
+headless: false
+channel: msedge
+# If you want to pin a specific browser binary instead of `channel`, set this:
+# executablePath: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+
+# Optional: make the browser window feel more "human"
+# args: ["--start-maximized"]
+# viewport: null
+
+# webSearch options
+engine: "baidu"
+pages: 3
+perPage: 10
+details: 2
+
+# inspectPage options (when action: inspectPage)
+url: "https://www.jd.com"
+waitUntil: "domcontentloaded" # load | domcontentloaded | networkidle
+waitForSelector: "body"
+captureFullPage: true
+includeHtml: true
+includeAccessibility: false
+includeElements: true
+detectBlockers: true
+

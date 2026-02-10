@@ -1,0 +1,13 @@
+{
+  "name": "jd_aircon_price_skill",
+  "version": "0.1.0",
+  "description": "JD.com air-conditioner price scraper (Playwright). Opens JD search, pauses for human verification if blocked, then extracts top items with prices.",
+  "entry": "main:run",
+  "capabilities": {
+    "network": true,
+    "browser": true,
+    "node": true,
+    "human_in_loop": true
+  }
+}
+

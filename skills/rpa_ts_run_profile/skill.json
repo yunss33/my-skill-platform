@@ -1,0 +1,12 @@
+{
+  "name": "rpa_ts_run_profile",
+  "version": "0.1.0",
+  "description": "RPA (Node/TS + Playwright) using a per-run persistent browser profile under outputs/<skill>/<run_id>/shared/. Best for isolated, traceable runs; supports session mode to keep a visible browser open.",
+  "entry": "main:run",
+  "capabilities": {
+    "network": true,
+    "browser": true,
+    "node": true
+  }
+}
+

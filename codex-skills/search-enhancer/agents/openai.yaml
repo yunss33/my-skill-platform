@@ -1,0 +1,4 @@
+interface:
+  display_name: "Search Enhancer"
+  short_description: "Enhance queries, ask clarifying questions, run adaptive search with logs"
+  default_prompt: "Use $search-enhancer to improve my query and run a multi-round search with audit logs."

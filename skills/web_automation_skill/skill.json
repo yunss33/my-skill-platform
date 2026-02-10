@@ -1,0 +1,11 @@
+{
+  "name": "web_automation_skill",
+  "version": "0.1.0",
+  "description": "Example web automation skill stub (Playwright-ready).",
+  "entry": "main:run",
+  "capabilities": {
+    "network": true,
+    "browser": true
+  }
+}
+
