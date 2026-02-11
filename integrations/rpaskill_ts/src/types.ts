@@ -86,6 +86,32 @@ export type SearchTaskOptions =
       pauseForHumanMode?: 'auto' | 'enter';
       pauseMessage?: string;
       pauseTimeoutMs?: number;
+
+      // Pace controls (best-effort). Useful to avoid triggering anti-bot systems.
+      // - stepDelayMs adds a delay between major actions (navigation, click, type, etc.)
+      // - jitter adds randomness on top of the base delay
+      stepDelayMs?: number;
+      stepDelayJitterMs?: number;
+      // When using UI search (searchInput), type with a per-character delay.
+      typeDelayMs?: number;
+      typeDelayJitterMs?: number;
+
+      // Optional trace log (JSONL). Lets the platform index screenshots/HTML/UI-map artifacts.
+      tracePath?: string;
+      traceAppend?: boolean;
+
+      // Optional capture artifacts (screenshot + html + elements) while running searchOnSite.
+      // This is a lightweight "inspect" that does NOT navigate; it captures the current page.
+      capturePrefix?: string;
+      captureFullPage?: boolean;
+      includeHtml?: boolean;
+      includeElements?: boolean;
+      maxElements?: number;
+      captureOnBlocked?: boolean;
+      captureOnDone?: boolean;
+      // Best-effort detection for common blockers like login/captcha pages.
+      detectBlockers?: boolean;
+
       list: ListExtractionProfile;
       limit?: number;
       baseUrl?: string;
@@ -116,6 +142,27 @@ export type SearchTaskOptions =
       pauseForHumanMode?: 'auto' | 'enter';
       pauseMessage?: string;
       pauseTimeoutMs?: number;
+
+      // Pace controls (best-effort). Useful to avoid triggering anti-bot systems.
+      stepDelayMs?: number;
+      stepDelayJitterMs?: number;
+      typeDelayMs?: number;
+      typeDelayJitterMs?: number;
+
+      // Optional trace log (JSONL).
+      tracePath?: string;
+      traceAppend?: boolean;
+
+      // Optional capture artifacts (screenshot + html + elements).
+      capturePrefix?: string;
+      captureFullPage?: boolean;
+      includeHtml?: boolean;
+      includeElements?: boolean;
+      maxElements?: number;
+      captureOnBlocked?: boolean;
+      captureOnDone?: boolean;
+      detectBlockers?: boolean;
+
       list: ListExtractionProfile;
       limit?: number;
       baseUrl?: string;

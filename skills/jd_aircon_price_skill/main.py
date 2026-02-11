@@ -30,6 +30,18 @@ def run(ctx) -> dict[str, Any]:
         "afterSearchDelayMs": int(cfg.get("afterSearchDelayMs") or 2500),
         "limit": limit,
         "screenshotPath": str((ctx.outputs_dir / "screenshots" / "jd_search.png").resolve()),
+        # Optional: capture page artifacts (screenshot + html + elements) for AI debugging / replay.
+        "capturePrefix": str((ctx.outputs_dir / "captures" / "jd_search").resolve()),
+        "captureFullPage": bool(cfg.get("captureFullPage", True)),
+        "includeHtml": bool(cfg.get("includeHtml", True)),
+        "includeElements": bool(cfg.get("includeElements", True)),
+        "maxElements": int(cfg.get("maxElements") or 250),
+        "captureOnBlocked": bool(cfg.get("captureOnBlocked", True)),
+        "captureOnDone": bool(cfg.get("captureOnDone", True)),
+        "detectBlockers": bool(cfg.get("detectBlockers", True)),
+        # Pace controls (best-effort)
+        "stepDelayMs": int(cfg.get("stepDelayMs") or 600),
+        "stepDelayJitterMs": int(cfg.get("stepDelayJitterMs") or 400),
         "list": {
             "itemSelector": "#J_goodsList .gl-item",
             "fields": {

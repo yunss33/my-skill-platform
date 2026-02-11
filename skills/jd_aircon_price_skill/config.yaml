@@ -17,3 +17,16 @@ pauseForHuman: true
 # - auto: keep polling until results selector appears
 pauseForHumanMode: enter
 pauseTimeoutMs: 0
+
+# Pace controls (best-effort)
+stepDelayMs: 600
+stepDelayJitterMs: 400
+
+# Capture artifacts for AI-assisted debugging/replay
+captureOnBlocked: true
+captureOnDone: true
+captureFullPage: true
+includeHtml: true
+includeElements: true
+maxElements: 250
+detectBlockers: true
