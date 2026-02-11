@@ -18,18 +18,20 @@ export class BrowserManager {
       process.env.PLAYWRIGHT_BROWSERS_PATH = path.resolve(process.cwd(), '工程依赖', 'Playwright', 'browsers');
     }
 
+    const launchArgs = Array.isArray(options.args) ? options.args : [];
+
     const browserOptions = {
       headless: options.headless ?? false,
       slowMo: options.slowMo ?? 0,
       channel: options.channel,
       executablePath: options.executablePath,
-      args: options.args ?? [],
+      args: launchArgs,
       proxy: options.proxy,
     };
 
     // If the user asks to start maximized, the default viewport will fight with it.
     // In Playwright, `viewport: null` lets the browser window size drive the viewport.
-    const wantsMaximized = (options.args ?? []).some((a) => String(a).toLowerCase().includes('start-maximized'));
+    const wantsMaximized = launchArgs.some((a) => String(a).toLowerCase().includes('start-maximized'));
     const viewport =
       options.viewport === undefined
         ? wantsMaximized
@@ -61,8 +63,13 @@ export class BrowserManager {
   }
 
   async getPage(): Promise<Page> {
-    if (!this.page) {
+    if (!this.context) {
       throw new Error('Browser not initialized. Call initBrowser first.');
+    }
+
+    // In long-lived sessions, the tab can be closed manually. Recreate it on-demand.
+    if (!this.page || this.page.isClosed()) {
+      this.page = await this.context.newPage();
     }
     return this.page;
   }
@@ -76,7 +83,13 @@ export class BrowserManager {
 
   async closeBrowser(): Promise<void> {
     if (this.page) {
-      await this.page.close();
+      try {
+        if (!this.page.isClosed()) {
+          await this.page.close();
+        }
+      } catch {
+        // ignore
+      }
       this.page = null;
     }
     if (this.context) {
