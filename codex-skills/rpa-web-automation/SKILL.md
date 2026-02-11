@@ -1,4 +1,4 @@
-﻿﻿---
+---
 name: rpa-web-automation
 description: Automate web pages using Playwright in this repo. Use when Codex needs to build or extend RPA scripts, examples, or core utilities that launch browsers, navigate, interact with elements, extract data, or orchestrate flows.
 ---
