@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from .common.runner import run_rpaskill_ts, run_rpaskill_ts_session
@@ -56,6 +58,58 @@ def run(ctx) -> dict[str, Any]:
 
     This lets you keep the heavy Playwright automation logic in TS while the platform stays Python.
     """
+
+    def _write_latest_marker(*, action_name: str, payload: dict[str, Any], result: dict[str, Any]) -> None:
+        """
+        Write a stable pointer file so the agent can auto-locate the most recent run's artifacts
+        without the user needing to paste paths/screenshots.
+        """
+        try:
+            skill_root = ctx.platform.root_dir / "outputs" / str(ctx.skill.name)
+            skill_root.mkdir(parents=True, exist_ok=True)
+            marker_path = skill_root / "_latest.json"
+
+            # Best-effort guesses to help locate artifacts quickly.
+            captures_dir = ctx.outputs_dir / "captures"
+            screenshots_dir = ctx.outputs_dir / "screenshots"
+
+            marker = {
+                "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "skill": str(ctx.skill.name),
+                "run_id": str(ctx.run_id),
+                "agent_id": str(ctx.agent_id),
+                "action": str(action_name),
+                "paths": {
+                    "outputs_dir": str(Path(ctx.outputs_dir).resolve()),
+                    "shared_dir": str(Path(ctx.shared_dir).resolve()),
+                    "work_dir": str(Path(ctx.work_dir).resolve()),
+                    "captures_dir": str(captures_dir.resolve()),
+                    "screenshots_dir": str(screenshots_dir.resolve()),
+                    "trace_path": str(payload.get("tracePath") or ""),
+                    "capture_prefix": str(payload.get("capturePrefix") or ""),
+                },
+                # Keep payload small but useful (avoid dumping large lists).
+                "payload_hints": {
+                    "url": payload.get("url"),
+                    "searchUrl": payload.get("searchUrl"),
+                    "query": payload.get("query"),
+                    "resultsWaitFor": payload.get("resultsWaitFor"),
+                    "pauseForHuman": payload.get("pauseForHuman"),
+                    "pauseForHumanMode": payload.get("pauseForHumanMode"),
+                    "stepDelayMs": payload.get("stepDelayMs"),
+                    "stepDelayJitterMs": payload.get("stepDelayJitterMs"),
+                    "typeDelayMs": payload.get("typeDelayMs"),
+                    "typeDelayJitterMs": payload.get("typeDelayJitterMs"),
+                },
+                "result_hints": {
+                    "status": result.get("status"),
+                },
+            }
+            marker_path.write_text(json.dumps(marker, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        except Exception:
+            # Never break the skill due to marker writes.
+            return
+
     cfg = ctx.config or {}
     action = cfg.get("action", "adaptiveSearch")
     action = str(action)
@@ -94,7 +148,9 @@ def run(ctx) -> dict[str, Any]:
     # Start/close/status are session-management commands; they don't need action-specific defaults.
     if session_enabled and session_command in ("start", "open", "close", "stop", "shutdown", "status", "health"):
         out = run_rpaskill_ts_session(ctx, action=action, payload=input_payload)
-        return {"status": "ok", "action": action, "rpaskill_ts_session": out}
+        res = {"status": "ok", "action": action, "rpaskill_ts_session": out}
+        _write_latest_marker(action_name=action, payload=input_payload, result=res)
+        return res
 
     if action in ("webSearch", "adaptiveSearch"):
         query = input_payload.get("query")
@@ -123,7 +179,9 @@ def run(ctx) -> dict[str, Any]:
 
     if session_enabled:
         out = run_rpaskill_ts_session(ctx, action=action, payload=input_payload)
-        return {"status": "ok", "action": action, "rpaskill_ts_session": out}
+        res = {"status": "ok", "action": action, "rpaskill_ts_session": out}
+        _write_latest_marker(action_name=action, payload=input_payload, result=res)
+        return res
 
     out = run_rpaskill_ts(ctx, action=action, payload=input_payload)
 
@@ -134,8 +192,10 @@ def run(ctx) -> dict[str, Any]:
     except Exception:
         status = "ok"
 
-    return {
+    res = {
         "status": status,
         "action": action,
         "rpaskill_ts": out,
     }
+    _write_latest_marker(action_name=action, payload=input_payload, result=res)
+    return res

@@ -218,6 +218,16 @@ Adaptive search supports structured audit logs per run and per round:
 ### Debugging Tips
 - **Enable headful mode**: Set `headless: false` to see what's happening
 - **Add delays**: Use `slowMo` option to slow down operations
+
+### Pacing (anti-bot)
+
+If a site rate-limits or shows verification pages, use pacing + artifact capture in `searchOnSite`:
+
+- `stepDelayMs` / `stepDelayJitterMs`: add delays between major actions
+- `typeDelayMs` / `typeDelayJitterMs`: type like a human (per-character delay)
+- `capturePrefix` + `includeHtml/includeElements` + `captureOnBlocked/captureOnDone`: capture screenshot + DOM for AI debugging
+
+See `PACING_GUIDE.md` for recommended presets.
 - **Take screenshots**: Capture screenshots at key points
 - **Check logs**: Review console logs for errors and warnings
 

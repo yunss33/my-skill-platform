@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -77,6 +79,38 @@ def run(ctx) -> dict[str, Any]:
         payload.pop("storageStatePath", None)
 
     out = run_rpaskill_ts(ctx, action="searchOnSite", payload=payload)
+
+    # Write a stable pointer so the agent can locate artifacts without the user pasting paths/screenshots.
+    try:
+        skill_root = ctx.platform.root_dir / "outputs" / "jd_aircon_price_skill"
+        skill_root.mkdir(parents=True, exist_ok=True)
+        marker_path = skill_root / "_latest.json"
+        marker = {
+            "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "skill": "jd_aircon_price_skill",
+            "run_id": str(ctx.run_id),
+            "agent_id": str(ctx.agent_id),
+            "action": "searchOnSite",
+            "paths": {
+                "outputs_dir": str(Path(ctx.outputs_dir).resolve()),
+                "shared_dir": str(Path(ctx.shared_dir).resolve()),
+                "captures_dir": str((ctx.outputs_dir / "captures").resolve()),
+                "screenshots_dir": str((ctx.outputs_dir / "screenshots").resolve()),
+                "trace_path": str(payload.get("tracePath") or ""),
+                "capture_prefix": str(payload.get("capturePrefix") or ""),
+            },
+            "payload_hints": {
+                "searchUrl": payload.get("searchUrl"),
+                "resultsWaitFor": payload.get("resultsWaitFor"),
+                "pauseForHuman": payload.get("pauseForHuman"),
+                "pauseForHumanMode": payload.get("pauseForHumanMode"),
+                "stepDelayMs": payload.get("stepDelayMs"),
+                "stepDelayJitterMs": payload.get("stepDelayJitterMs"),
+            },
+        }
+        marker_path.write_text(json.dumps(marker, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    except Exception:
+        pass
 
     # Index the session state if it was saved.
     if storage_state_path.exists():
