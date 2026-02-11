@@ -3,11 +3,54 @@ import { helper } from '../utils/helper.js';
 import { ListExtractionOptions, ListExtractionProfile, SearchResultRecord, SearchTaskOptions } from '../types.js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { once } from 'node:events';
 
 function ensureDirForFile(filePath: string): void {
   const dir = path.dirname(filePath);
   if (!dir || dir === '.') return;
   fs.mkdirSync(dir, { recursive: true });
+}
+
+async function waitForHuman(message?: string, timeoutMs?: number): Promise<'continued' | 'timeout'> {
+  if (message) {
+    // eslint-disable-next-line no-console
+    console.log(message);
+  }
+
+  // Non-interactive stdin: fall back to timeout-based wait (or no-op).
+  if (!process.stdin || !process.stdin.isTTY) {
+    if (!timeoutMs || timeoutMs <= 0) return 'timeout';
+    await new Promise((r) => setTimeout(r, timeoutMs));
+    return 'timeout';
+  }
+
+  process.stdin.resume();
+  const timer =
+    timeoutMs && timeoutMs > 0
+      ? setTimeout(() => {
+          try {
+            process.stdin.pause();
+          } catch {
+            // ignore
+          }
+        }, timeoutMs)
+      : null;
+
+  try {
+    await Promise.race([
+      once(process.stdin, 'data'),
+      ...(timeoutMs && timeoutMs > 0 ? [new Promise((r) => setTimeout(r, timeoutMs))] : []),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+    try {
+      process.stdin.pause();
+    } catch {
+      // ignore
+    }
+  }
+
+  return 'continued';
 }
 
 async function isLikelyBlocked(): Promise<boolean> {
@@ -24,13 +67,14 @@ async function isLikelyBlocked(): Promise<boolean> {
 }
 
 async function waitUntilSelectorVisible(selector: string, timeoutMs?: number): Promise<boolean> {
-  const page = await browserManager.getPage();
   const maxWait = timeoutMs && timeoutMs > 0 ? timeoutMs : 10 * 60 * 1000;
   const deadline = Date.now() + maxWait;
 
   // Keep trying across navigations while the user solves verification.
   // Use short timeouts per attempt so we can recover from navigation/context resets.
   while (Date.now() < deadline) {
+    // Re-fetch page each loop so closed tabs can be recreated (BrowserManager.getPage handles this).
+    const page = await browserManager.getPage();
     const remaining = deadline - Date.now();
     const stepTimeout = Math.min(2000, Math.max(250, remaining));
     try {
@@ -120,6 +164,10 @@ export class SearchSkill {
 
   async searchOnSite(options: SearchTaskOptions): Promise<SearchResultRecord[]> {
     const page = await browserManager.getPage();
+    const pauseModeRequested = options.pauseForHumanMode ?? 'auto';
+    // When stdin is not interactive (non-TTY), "enter" mode cannot work; fall back to auto polling.
+    const pauseMode: 'auto' | 'enter' =
+      pauseModeRequested === 'enter' && !!process.stdin && process.stdin.isTTY ? 'enter' : 'auto';
 
     const navigationTimeout = options.navigationTimeout ?? 30000;
     const navigationWaitUntil = options.navigationWaitUntil ?? 'domcontentloaded';
@@ -150,6 +198,10 @@ export class SearchSkill {
         `Page seems blocked (login/captcha/verification).\nCurrent URL: ${page.url()}\nPlease complete it in the browser; the skill will auto-continue when results appear.`;
       // eslint-disable-next-line no-console
       console.log(msg);
+      if (pauseMode === 'enter') {
+        // Let the user decide when to continue (more reliable than auto-detect on heavily protected sites).
+        await waitForHuman('Press Enter after you finish verification/login in the browser...', options.pauseTimeoutMs);
+      }
     }
 
     if (options.cookieAcceptSelector) {
@@ -188,20 +240,50 @@ export class SearchSkill {
           timeout: options.resultsTimeout ?? 30000,
         });
       } catch (error) {
-        if (options.pauseForHuman || (await isLikelyBlocked())) {
+        const blocked = await isLikelyBlocked();
+        if (options.pauseForHuman) {
           const msg =
             options.pauseMessage ??
             `Page seems blocked (login/captcha/verification).\nCurrent URL: ${page.url()}\nPlease complete it in the browser; the skill will auto-continue when results appear.`;
           // eslint-disable-next-line no-console
           console.log(msg);
 
-          const ok = await waitUntilSelectorVisible(
-            options.resultsWaitFor,
-            Math.max(options.pauseTimeoutMs ?? 0, options.resultsTimeout ?? 0, 10 * 60 * 1000)
-          );
-          if (!ok) {
-            throw new Error(`Human-in-the-loop wait timed out. Still cannot find selector: ${options.resultsWaitFor}`);
+          if (pauseMode === 'enter' && options.pauseForHuman) {
+            const deadline =
+              options.pauseTimeoutMs && options.pauseTimeoutMs > 0 ? Date.now() + options.pauseTimeoutMs : null;
+            // Loop: user presses Enter when they believe the results page is ready; we re-check the selector.
+            // This avoids long "silent waiting" when the site throttles/blocks results rendering.
+            while (true) {
+              if (deadline && Date.now() > deadline) {
+                throw new Error(`Human-in-the-loop wait timed out. Still cannot find selector: ${options.resultsWaitFor}`);
+              }
+
+              const res = await waitForHuman('Press Enter to retry detection of results...', options.pauseTimeoutMs);
+              if (res === 'timeout' && options.pauseTimeoutMs && options.pauseTimeoutMs > 0) {
+                throw new Error(`Human-in-the-loop wait timed out. Still cannot find selector: ${options.resultsWaitFor}`);
+              }
+              try {
+                const p = await browserManager.getPage();
+                await p.waitForSelector(options.resultsWaitFor, { state: 'visible', timeout: 2000 });
+                break;
+              } catch {
+                // Keep waiting; user can solve more steps and press Enter again.
+              }
+            }
+          } else {
+            const ok = await waitUntilSelectorVisible(
+              options.resultsWaitFor,
+              Math.max(options.pauseTimeoutMs ?? 0, options.resultsTimeout ?? 0, 10 * 60 * 1000)
+            );
+            if (!ok) {
+              throw new Error(`Human-in-the-loop wait timed out. Still cannot find selector: ${options.resultsWaitFor}`);
+            }
           }
+        } else if (blocked) {
+          // No human-in-loop requested: fail fast instead of silently waiting ~10min.
+          throw new Error(
+            `Page seems blocked (login/captcha/verification) and pauseForHuman=false.\nCurrent URL: ${page.url()}`
+          );
         } else {
           throw error;
         }

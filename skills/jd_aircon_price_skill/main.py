@@ -50,6 +50,8 @@ def run(ctx) -> dict[str, Any]:
         "saveStorageStatePath": str(storage_state_path),
         # Human-in-the-loop
         "pauseForHuman": bool(cfg.get("pauseForHuman", True)),
+        # In heavily-protected flows (JD risk pages), "enter" mode is more reliable than blind polling.
+        "pauseForHumanMode": str(cfg.get("pauseForHumanMode") or "enter"),
         "pauseTimeoutMs": int(cfg.get("pauseTimeoutMs") or 0),
         "pauseMessage": cfg.get("pauseMessage")
         or "京东可能会出现安全验证/登录。请在浏览器里完成验证后，保持页面不关闭；skill 会自动检测到商品列表出现后继续抓取价格...",

@@ -80,6 +80,10 @@ export type SearchTaskOptions =
       cookieAcceptSelector?: string;
       // Human-in-the-loop: allow manual verification/login/captcha before continuing.
       pauseForHuman?: boolean;
+      // How to resume when blocked:
+      // - auto: keep polling for resultsWaitFor to appear
+      // - enter: ask the user to press Enter after completing verification
+      pauseForHumanMode?: 'auto' | 'enter';
       pauseMessage?: string;
       pauseTimeoutMs?: number;
       list: ListExtractionProfile;
@@ -106,6 +110,10 @@ export type SearchTaskOptions =
       cookieAcceptSelector?: string;
       // Human-in-the-loop: allow manual verification/login/captcha before continuing.
       pauseForHuman?: boolean;
+      // How to resume when blocked:
+      // - auto: keep polling for resultsWaitFor to appear
+      // - enter: ask the user to press Enter after completing verification
+      pauseForHumanMode?: 'auto' | 'enter';
       pauseMessage?: string;
       pauseTimeoutMs?: number;
       list: ListExtractionProfile;

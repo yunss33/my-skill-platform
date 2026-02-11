@@ -5,6 +5,9 @@ dist/
 artifacts/
 *.png
 
+# Temporary one-off scripts used during local debugging
+scripts/_pw_tmp*
+
 # Keep Playwright browser binaries repo-local (large; do not commit)
 工程依赖/Playwright/browsers/
 !工程依赖/Playwright/browsers/.gitkeep

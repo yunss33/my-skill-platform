@@ -12,4 +12,8 @@ args:
 
 # Human-in-the-loop (JD frequently shows risk verification pages)
 pauseForHuman: true
+# How to resume after you finish login/captcha in the browser:
+# - enter: press Enter in terminal to let the skill continue/retry
+# - auto: keep polling until results selector appears
+pauseForHumanMode: enter
 pauseTimeoutMs: 0
