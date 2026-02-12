@@ -1,0 +1,41 @@
+# Find cheapest iPhone 15 price (JD + PDD)
+
+keyword: "苹果15手机"
+limit_per_site: 30
+
+# Enable sites
+enable_jd: true
+enable_pdd: true
+
+# Multi-account (shared convention across skills)
+profileAccount: "default"   # e.g. acc_a / acc_b
+
+# Browser
+headless: false
+channel: msedge
+slowMo: 150
+args:
+  - "--start-maximized"
+
+# Human-in-the-loop (both sites may show verification)
+pauseForHuman: true
+pauseForHumanMode: auto
+pauseTimeoutMs: 0
+
+# Pace controls (best-effort)
+stepDelayMs: 900
+stepDelayJitterMs: 700
+
+# PDD lazy-load assist
+pdd_scrollSteps: 6
+pdd_scrollDelayMs: 1200
+
+# Capture artifacts for AI-assisted debugging/replay
+captureOnBlocked: true
+captureOnDone: true
+captureFullPage: true
+includeHtml: true
+includeElements: true
+maxElements: 350
+detectBlockers: true
+

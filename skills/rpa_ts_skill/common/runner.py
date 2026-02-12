@@ -457,6 +457,21 @@ def run_rpaskill_ts_session(ctx, *, action: str, payload: dict[str, Any]) -> dic
     if not base_url:
         raise RuntimeError("rpaskill_ts session server missing baseUrl")
 
+    # Optional: after the action, persist the browser storage state to a stable path.
+    # This is useful even in session mode (where the browser stays open), for backup/export.
+    save_storage_target = payload.get("saveStorageStatePath")
+    if save_storage_target:
+        try:
+            p = Path(str(save_storage_target))
+            if not p.is_absolute():
+                # Default relative paths to the agent outputs directory.
+                p = (ctx.outputs_dir / p).resolve()
+            p.parent.mkdir(parents=True, exist_ok=True)
+            save_storage_target = str(p)
+        except Exception:
+            # Best-effort: keep the raw value; the Node side may still handle it.
+            save_storage_target = str(save_storage_target)
+
     options = _action_options_from_payload(payload)
     ctx.events.emit("rpaskill_ts.session.call", data={"method": action, "baseUrl": base_url, "options": options}, scope="agent")
 
@@ -466,6 +481,21 @@ def run_rpaskill_ts_session(ctx, *, action: str, payload: dict[str, Any]) -> dic
         raise RuntimeError(f"rpaskill_ts session call failed: {res.get('error')}")
 
     result = {"ok": True, "action": action, "response": res.get("result"), "session": state}
+
+    # Persist storageState snapshot after a successful call (best-effort).
+    if save_storage_target:
+        try:
+            ss = _json_http(
+                "POST",
+                f"{base_url}/call",
+                payload={"method": "saveStorageState", "params": [str(save_storage_target)]},
+                timeout_s=60.0,
+            )
+            if ss.get("ok"):
+                result["savedStorageStatePath"] = str(save_storage_target)
+                ctx.artifacts.record_path(Path(str(save_storage_target)), scope="agent", kind="storage_state")
+        except Exception:
+            pass
     out_path = ctx.outputs_dir / f"rpaskill_ts_session_{action}_output.json"
     out_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     ctx.artifacts.record_path(out_path, scope="agent", kind=f"rpaskill_ts.session.{action}.output")

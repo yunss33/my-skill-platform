@@ -147,6 +147,9 @@ For TS-based search skills (`web_search_skill`, `adaptive_search_skill`), you ca
 - search result pages: `screenshotPrefix`
 - opened detail pages (when `details > 0`): `openScreenshotPrefix`
 
+Note: SERP titles/snippets can be incomplete or misleading. If you need better recall, set `details > 0`
+to click into a few results and capture `openScreenshotPrefix` for later analysis/replay.
+
 Example:
 
 ```powershell

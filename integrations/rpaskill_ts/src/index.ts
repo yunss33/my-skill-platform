@@ -18,6 +18,7 @@ import {
   ElementOptions,
   ExtractOptions,
   FlowControlOptions,
+  HeuristicProductSearchOptions,
   InspectPageOptions,
   InspectPageResponse,
   ListExtractionOptions,
@@ -277,6 +278,10 @@ export class RPASkill {
     return await searchSkill.searchOnSite(options);
   }
 
+  async searchProductsHeuristic(options: HeuristicProductSearchOptions): Promise<SearchResultRecord[]> {
+    return await searchSkill.searchProductsHeuristic(options);
+  }
+
   async webSearch(options: WebSearchOptions = {}): Promise<WebSearchResponse> {
     return await webSearchSkill.search(options);
   }
@@ -316,6 +321,7 @@ export {
   ListExtractionOptions,
   SearchTaskOptions,
   SearchResultRecord,
+  HeuristicProductSearchOptions,
   WebSearchOptions,
   WebSearchResponse,
   WebSearchEngine,

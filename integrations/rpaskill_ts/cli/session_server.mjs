@@ -127,6 +127,7 @@ async function main() {
     'webSearch',
     'adaptiveSearch',
     'searchOnSite',
+    'searchProductsHeuristic',
     'inspectPage',
     'saveStorageState',
   ]);
@@ -188,4 +189,3 @@ main().catch((err) => {
   console.error('session_server failed:', err);
   process.exitCode = 1;
 });
-

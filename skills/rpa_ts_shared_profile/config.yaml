@@ -19,6 +19,10 @@ session:
 headless: false
 channel: msedge
 
+# Optional: multi-login reuse (preferred when you have many sites/accounts)
+# profileSite: "pdd"
+# profileAccount: "acc_a"
+
 # inspectPage defaults
 url: "https://www.jd.com"
 waitUntil: "domcontentloaded"
@@ -28,4 +32,3 @@ includeHtml: true
 includeElements: true
 includeAccessibility: false
 detectBlockers: true
-

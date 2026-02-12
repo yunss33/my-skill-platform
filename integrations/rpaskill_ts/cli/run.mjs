@@ -58,7 +58,7 @@ async function main() {
 
   if (args.help || !action || !inputPath || !outputPath) {
     console.log(`Usage:
-  node cli/run.mjs --action <webSearch|adaptiveSearch|inspectPage> --input <config.json> --output <out.json> [--headless true|false] [--channel chrome|msedge] [--executablePath <path>]
+  node cli/run.mjs --action <webSearch|adaptiveSearch|inspectPage|searchOnSite|searchProductsHeuristic> --input <config.json> --output <out.json> [--headless true|false] [--channel chrome|msedge] [--executablePath <path>]
 `);
     process.exitCode = 2;
     return;
@@ -196,6 +196,35 @@ async function main() {
         captureOnDone: config.captureOnDone,
         detectBlockers: config.detectBlockers,
         list: config.list,
+      });
+    } else if (action === 'searchProductsHeuristic') {
+      response = await rpa.searchProductsHeuristic({
+        searchUrl: config.searchUrl,
+        resultsWaitFor: config.resultsWaitFor,
+        waitForLoadState: config.waitForLoadState,
+        resultsTimeout: config.resultsTimeout,
+        afterSearchDelayMs: config.afterSearchDelayMs,
+        pauseForHuman: !!config.pauseForHuman,
+        pauseForHumanMode: config.pauseForHumanMode,
+        pauseMessage: config.pauseMessage,
+        pauseTimeoutMs: config.pauseTimeoutMs,
+        stepDelayMs: config.stepDelayMs,
+        stepDelayJitterMs: config.stepDelayJitterMs,
+        scrollSteps: config.scrollSteps,
+        scrollDelayMs: config.scrollDelayMs,
+        tracePath: config.tracePath,
+        traceAppend: !!config.traceAppend,
+        capturePrefix: config.capturePrefix,
+        captureFullPage: config.captureFullPage,
+        includeHtml: config.includeHtml,
+        includeElements: config.includeElements,
+        maxElements: config.maxElements,
+        captureOnBlocked: config.captureOnBlocked,
+        captureOnDone: config.captureOnDone,
+        detectBlockers: config.detectBlockers,
+        limit: config.limit,
+        baseUrl: config.baseUrl,
+        screenshotPath: config.screenshotPath,
       });
     } else {
       throw new Error(`Unknown --action: ${action}`);

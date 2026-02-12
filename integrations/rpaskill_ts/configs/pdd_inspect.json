@@ -1,0 +1,13 @@
+{
+    "url":  "https://mobile.yangkeduo.com/search_result.html?search_key=%E7%A9%BA%E8%B0%83",
+    "pauseForHuman":  false,
+    "maxElements":  400,
+    "includeElements":  true,
+    "includeHtml":  true,
+    "captureFullPage":  true,
+    "capturePrefix":  "artifacts/pdd_m_inspect",
+    "timeout":  60000,
+    "includeAccessibility":  false,
+    "waitUntil":  "domcontentloaded",
+    "detectBlockers":  true
+}

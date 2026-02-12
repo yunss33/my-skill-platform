@@ -171,6 +171,53 @@ export type SearchTaskOptions =
       navigationWaitUntil?: LoadState;
     };
 
+// Heuristic e-commerce extraction (best-effort; avoids brittle CSS selectors on dynamic sites).
+export interface HeuristicProductSearchOptions {
+  // Directly open a pre-built search URL and then heuristically extract {title, price, link}.
+  searchUrl: string;
+
+  // Playwright selector used to decide when results are ready (NOT CSS; e.g. `text=/[￥¥]\\s*\\d/`).
+  resultsWaitFor?: string;
+
+  // Waits
+  waitForLoadState?: LoadState;
+  resultsTimeout?: number;
+  afterSearchDelayMs?: number;
+
+  // Human-in-the-loop: allow manual verification/login/captcha before continuing.
+  pauseForHuman?: boolean;
+  pauseForHumanMode?: 'auto' | 'enter';
+  pauseMessage?: string;
+  pauseTimeoutMs?: number;
+
+  // Pace controls (best-effort). Useful to avoid triggering anti-bot systems.
+  stepDelayMs?: number;
+  stepDelayJitterMs?: number;
+
+  // Optional light scrolling to load more items before extraction.
+  scrollSteps?: number;
+  scrollDelayMs?: number;
+
+  // Optional trace log (JSONL). Lets the platform index screenshots/HTML/UI-map artifacts.
+  tracePath?: string;
+  traceAppend?: boolean;
+
+  // Optional capture artifacts (screenshot + html + elements).
+  capturePrefix?: string;
+  captureFullPage?: boolean;
+  includeHtml?: boolean;
+  includeElements?: boolean;
+  maxElements?: number;
+  captureOnBlocked?: boolean;
+  captureOnDone?: boolean;
+  detectBlockers?: boolean;
+
+  // Output controls
+  limit?: number;
+  baseUrl?: string;
+  screenshotPath?: string;
+}
+
 export type WebSearchEngine = 'bing' | 'baike' | 'baidu';
 
 export type SearchGoal = 'auto' | 'popular' | 'academic' | 'shopping' | 'technical';
@@ -187,6 +234,28 @@ export interface WebSearchOptions {
   // Save screenshots when opening detail pages (details > 0).
   openScreenshotPrefix?: string;
   openScreenshotFullPage?: boolean;
+  // Human-in-the-loop (search engine pages may trigger verification/captcha).
+  pauseForHuman?: boolean;
+  pauseForHumanMode?: 'auto' | 'enter';
+  pauseTimeoutMs?: number;
+
+  // Pace controls (best-effort).
+  stepDelayMs?: number;
+  stepDelayJitterMs?: number;
+  typeDelayMs?: number;
+  typeDelayJitterMs?: number;
+
+  // Best-effort detection for common blockers like login/captcha pages.
+  detectBlockers?: boolean;
+
+  // Optional capture artifacts for debugging blocked flows.
+  capturePrefix?: string;
+  captureFullPage?: boolean;
+  includeHtml?: boolean;
+  includeElements?: boolean;
+  maxElements?: number;
+  captureOnBlocked?: boolean;
+  captureOnDone?: boolean;
   // Append-only trace log (JSONL). Useful for AI to reconstruct "what happened" and locate screenshots.
   tracePath?: string;
   traceAppend?: boolean;
@@ -246,6 +315,23 @@ export interface AdaptiveSearchOptions {
   afterSearchDelayMs?: number;
   navigationTimeout?: number;
   baikeUrl?: string;
+
+  // Human-in-the-loop / pacing / capture: passed through to the underlying webSearch rounds.
+  pauseForHuman?: boolean;
+  pauseForHumanMode?: 'auto' | 'enter';
+  pauseTimeoutMs?: number;
+  stepDelayMs?: number;
+  stepDelayJitterMs?: number;
+  typeDelayMs?: number;
+  typeDelayJitterMs?: number;
+  detectBlockers?: boolean;
+  capturePrefix?: string;
+  captureFullPage?: boolean;
+  includeHtml?: boolean;
+  includeElements?: boolean;
+  maxElements?: number;
+  captureOnBlocked?: boolean;
+  captureOnDone?: boolean;
 }
 
 export interface StructureFeatures {

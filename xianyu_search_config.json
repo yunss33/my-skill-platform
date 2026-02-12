@@ -1,0 +1,21 @@
+{
+  "action": "searchOnSite",
+  "searchUrl": "https://www.goofish.com/search?q=3C%E5%85%85%E7%94%B5%E5%AE%9D",
+  "list": {
+    "itemSelector": "div[class*='item']",
+    "fields": {
+      "name": {
+        "selector": "h3,div[class*='title']"
+      },
+      "price": {
+        "selector": "span[class*='price']"
+      },
+      "link": {
+        "selector": "a[href*='/item/']",
+        "attr": "href"
+      }
+    }
+  },
+  "limit": 10,
+  "pauseForHuman": true
+}

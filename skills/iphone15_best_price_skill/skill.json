@@ -1,0 +1,13 @@
+{
+  "name": "iphone15_best_price_skill",
+  "version": "0.1.0",
+  "description": "Find the cheapest iPhone 15 price by checking multiple sites (JD + PDD) using Playwright. Supports human-in-the-loop verification and persistent login profiles per site/account.",
+  "entry": "main:run",
+  "capabilities": {
+    "network": true,
+    "browser": true,
+    "node": true,
+    "human_in_loop": true
+  }
+}
+

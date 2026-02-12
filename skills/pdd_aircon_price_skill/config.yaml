@@ -1,4 +1,4 @@
-﻿# JD aircon price skill (human-in-the-loop)
+# Pinduoduo (PDD) aircon price skill (human-in-the-loop)
 
 keyword: "空调"
 limit: 12
@@ -13,17 +13,21 @@ args:
 # Multiple accounts:
 # profileAccount: "default"  # e.g. acc_a / acc_b
 
-# Human-in-the-loop (JD frequently shows risk verification pages)
+# Human-in-the-loop (PDD frequently shows captcha / verification)
 pauseForHuman: true
 # How to resume after you finish login/captcha in the browser:
-# - enter: press Enter in terminal to let the skill continue/retry
-# - auto: keep polling until results selector appears
-pauseForHumanMode: enter
+# - auto: keep polling until results selector appears (recommended; no terminal input needed)
+# - enter: press Enter to let the skill re-check readiness
+pauseForHumanMode: auto
 pauseTimeoutMs: 0
 
 # Pace controls (best-effort)
-stepDelayMs: 600
-stepDelayJitterMs: 400
+stepDelayMs: 700
+stepDelayJitterMs: 500
+
+# Lazy-load assist: scroll a bit before extracting
+scrollSteps: 4
+scrollDelayMs: 900
 
 # Capture artifacts for AI-assisted debugging/replay
 captureOnBlocked: true
@@ -31,5 +35,5 @@ captureOnDone: true
 captureFullPage: true
 includeHtml: true
 includeElements: true
-maxElements: 250
+maxElements: 350
 detectBlockers: true

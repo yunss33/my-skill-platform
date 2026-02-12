@@ -1,6 +1,12 @@
 import { browserManager } from '../core/browser.js';
 import { helper } from '../utils/helper.js';
-import { ListExtractionOptions, ListExtractionProfile, SearchResultRecord, SearchTaskOptions } from '../types.js';
+import {
+  HeuristicProductSearchOptions,
+  ListExtractionOptions,
+  ListExtractionProfile,
+  SearchResultRecord,
+  SearchTaskOptions,
+} from '../types.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { once } from 'node:events';
@@ -211,7 +217,9 @@ async function isLikelyBlocked(): Promise<boolean> {
   const url = page.url();
   if (/risk_handler/i.test(url)) return true;
   try {
-    const count = await page.locator('text=/验证码|人机验证|请完成验证|安全验证|captcha/i').count();
+    const count = await page
+      .locator('text=/验证码|人机验证|请完成验证|安全验证|captcha|访问频繁|操作频繁|请求频繁|系统繁忙|稍后再试/i')
+      .count();
     if (count > 0) return true;
   } catch {
     // ignore
@@ -571,6 +579,282 @@ export class SearchSkill {
       trace({ event: 'searchOnSite.error', url: page.url(), error: (error as Error)?.message ?? String(error) });
       throw error;
     }
+  }
+
+  async searchProductsHeuristic(options: HeuristicProductSearchOptions): Promise<SearchResultRecord[]> {
+    const page = await browserManager.getPage();
+    const pauseModeRequested = options.pauseForHumanMode ?? 'auto';
+    // When stdin is not interactive (non-TTY), "enter" mode cannot work; fall back to auto polling.
+    const pauseMode: 'auto' | 'enter' =
+      pauseModeRequested === 'enter' && !!process.stdin && process.stdin.isTTY ? 'enter' : 'auto';
+
+    const trace = createTraceWriter(options.tracePath, options.traceAppend);
+    const paceStepDelayMs = options.stepDelayMs ?? 0;
+    const paceStepDelayJitterMs = options.stepDelayJitterMs ?? 0;
+
+    const capturePrefix = options.capturePrefix;
+    const captureFullPage = !!options.captureFullPage;
+    const includeHtml = !!options.includeHtml;
+    const includeElements = !!options.includeElements;
+    const maxElements = options.maxElements ?? 200;
+    const captureOnBlocked = !!options.captureOnBlocked;
+    const captureOnDone = !!options.captureOnDone;
+
+    const resultsWaitFor = options.resultsWaitFor ?? 'text=/[￥¥]\\\\s*\\\\d/';
+    const limit = Math.max(1, Math.min(Number(options.limit ?? 20), 200));
+
+    trace({ event: 'searchProductsHeuristic.start', url: page.url(), pauseMode, resultsWaitFor, limit });
+
+    // Navigate to the pre-built search URL.
+    const navigationTimeout = options.resultsTimeout ?? 60000;
+    const navigationWaitUntil = 'domcontentloaded';
+    await stepDelay(paceStepDelayMs, paceStepDelayJitterMs);
+    await page.goto(options.searchUrl, { timeout: navigationTimeout, waitUntil: navigationWaitUntil });
+    trace({ event: 'searchProductsHeuristic.goto', url: page.url() });
+
+    // Bring window to front for visible runs so the user can see/interact.
+    try {
+      await page.bringToFront();
+    } catch {
+      // ignore
+    }
+
+    // If the site immediately redirects to a verification page, hint early and optionally capture artifacts.
+    const blockedEarly = (options.pauseForHuman || options.detectBlockers) && (await isLikelyBlocked());
+    if (blockedEarly) {
+      const msg =
+        options.pauseMessage ??
+        `Page seems blocked (login/captcha/verification).\nCurrent URL: ${page.url()}\nPlease complete it in the browser; the skill will auto-continue when results appear.`;
+      // eslint-disable-next-line no-console
+      console.log(msg);
+      trace({ event: 'searchProductsHeuristic.blocked', url: page.url(), message: msg });
+
+      if (capturePrefix && captureOnBlocked) {
+        const cap = await captureArtifacts(`${capturePrefix}_blocked`, {
+          captureFullPage,
+          includeHtml,
+          includeElements,
+          maxElements,
+        });
+        trace({ event: 'searchProductsHeuristic.capture.blocked', url: page.url(), ...cap });
+      }
+
+      if (options.pauseForHuman && pauseMode === 'enter') {
+        await waitForHuman('Press Enter after you finish verification/login in the browser...', options.pauseTimeoutMs);
+      }
+    }
+
+    // Wait for "results are ready" signal (Playwright selector, not CSS).
+    try {
+      await page.waitForSelector(resultsWaitFor, { state: 'visible', timeout: options.resultsTimeout ?? 60000 });
+    } catch (error) {
+      const blocked = (options.pauseForHuman || options.detectBlockers) && (await isLikelyBlocked());
+      if (options.pauseForHuman) {
+        const msg =
+          options.pauseMessage ??
+          `Page seems blocked (login/captcha/verification).\nCurrent URL: ${page.url()}\nPlease complete it in the browser; the skill will auto-continue when results appear.`;
+        // eslint-disable-next-line no-console
+        console.log(msg);
+        trace({ event: 'searchProductsHeuristic.blocked', url: page.url(), message: msg });
+
+        if (capturePrefix && captureOnBlocked) {
+          const cap = await captureArtifacts(`${capturePrefix}_blocked`, {
+            captureFullPage,
+            includeHtml,
+            includeElements,
+            maxElements,
+          });
+          trace({ event: 'searchProductsHeuristic.capture.blocked', url: page.url(), ...cap });
+        }
+
+        if (pauseMode === 'enter') {
+          const deadline = options.pauseTimeoutMs && options.pauseTimeoutMs > 0 ? Date.now() + options.pauseTimeoutMs : null;
+          while (true) {
+            if (deadline && Date.now() > deadline) {
+              throw new Error(`Human-in-the-loop wait timed out. Still cannot find selector: ${resultsWaitFor}`);
+            }
+            const res = await waitForHuman('Press Enter to retry detection of results...', options.pauseTimeoutMs);
+            if (res === 'timeout' && options.pauseTimeoutMs && options.pauseTimeoutMs > 0) {
+              throw new Error(`Human-in-the-loop wait timed out. Still cannot find selector: ${resultsWaitFor}`);
+            }
+            try {
+              const p = await browserManager.getPage();
+              await p.waitForSelector(resultsWaitFor, { state: 'visible', timeout: 2000 });
+              break;
+            } catch {
+              // Keep waiting; user can solve more steps and press Enter again.
+            }
+          }
+        } else {
+          const ok = await waitUntilSelectorVisible(
+            resultsWaitFor,
+            Math.max(options.pauseTimeoutMs ?? 0, options.resultsTimeout ?? 0, 10 * 60 * 1000)
+          );
+          if (!ok) {
+            throw new Error(`Human-in-the-loop wait timed out. Still cannot find selector: ${resultsWaitFor}`);
+          }
+        }
+      } else if (blocked) {
+        trace({ event: 'searchProductsHeuristic.blocked', url: page.url(), pauseForHuman: false });
+        throw new Error(
+          `Page seems blocked (login/captcha/verification) and pauseForHuman=false.\nCurrent URL: ${page.url()}`
+        );
+      } else {
+        throw error;
+      }
+    }
+
+    if (options.waitForLoadState) {
+      await page.waitForLoadState(options.waitForLoadState, { timeout: options.resultsTimeout ?? 60000 });
+    }
+    if (options.afterSearchDelayMs) {
+      await helper.delay(options.afterSearchDelayMs);
+    }
+
+    // Best-effort: scroll a bit to let lazy-loaded lists render more items.
+    const scrollSteps = Math.max(0, Math.min(Number(options.scrollSteps ?? 0), 25));
+    const scrollDelayMs = Math.max(0, Math.min(Number(options.scrollDelayMs ?? 700), 30_000));
+    for (let i = 0; i < scrollSteps; i += 1) {
+      await stepDelay(paceStepDelayMs, paceStepDelayJitterMs);
+      try {
+        await page.evaluate(() => window.scrollBy(0, Math.max(200, Math.floor(window.innerHeight * 0.85))));
+      } catch {
+        // ignore
+      }
+      if (scrollDelayMs) await helper.delay(scrollDelayMs);
+    }
+
+    if (options.screenshotPath) {
+      ensureDirForFile(options.screenshotPath);
+      await page.screenshot({ path: options.screenshotPath, fullPage: captureFullPage });
+      trace({ event: 'searchProductsHeuristic.screenshot', url: page.url(), screenshotPath: options.screenshotPath });
+    }
+
+    // Heuristic extraction (runs in page context).
+    const out = await page.evaluate(
+      (payload) => {
+        const normalize = (v: string) => String(v ?? '').replace(/\s+/g, ' ').trim();
+        const priceRe = /[￥¥]\s*([0-9]{1,8}(?:\.[0-9]{1,2})?)/;
+        const badTitleRe =
+          /(已拼|销量|评价|店铺|旗舰店|领券|券后|补贴|包邮|运费险|官方|正品|先用后付|月销|收起|更多|筛选|综合|价格|推荐)/;
+
+        const toAbs = (href: string, baseUrl: string) => {
+          try {
+            return new URL(href, baseUrl).toString();
+          } catch {
+            return href;
+          }
+        };
+
+        const pickTitle = (text: string) => {
+          const t = normalize(text);
+          if (!t) return '';
+          const parts = t
+            .split(/[\n\r\t|]+/g)
+            .map((x) => normalize(x))
+            .filter(Boolean)
+            .filter((x) => !priceRe.test(x))
+            .filter((x) => x.length >= 4 && x.length <= 90)
+            .filter((x) => !badTitleRe.test(x));
+          let best = '';
+          for (const p of parts) {
+            if (p.length > best.length) best = p;
+          }
+          if (best) return best;
+
+          // Fallback: remove a price token and re-try.
+          const noPrice = normalize(t.replace(priceRe, ''));
+          if (noPrice && noPrice.length >= 4 && noPrice.length <= 90 && !badTitleRe.test(noPrice)) return noPrice;
+          return '';
+        };
+
+        const hrefLooksLikeProduct = (href: string) => {
+          const h = String(href ?? '');
+          // Keep this intentionally loose; e-commerce sites vary a lot.
+          return /goods|product|item|detail|sku|goods_id|spu|\/goods\.html/i.test(h);
+        };
+
+        const limit = Math.max(1, Math.min(Number(payload.limit ?? 20), 200));
+        const baseUrl = String(payload.baseUrl ?? location.href);
+        const maxScan = Math.max(200, Math.min(Number(payload.maxScan ?? 4000), 15000));
+
+        const out: Array<Record<string, string | number>> = [];
+        const seen = new Set<string>();
+
+        const push = (title: string, price: string, link: string, source: string) => {
+          const t = normalize(title);
+          const p = normalize(price);
+          const l = normalize(link);
+          if (!t || !p) return;
+          const key = `${t}|${l}|${p}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          out.push({ index: out.length + 1, title: t, price: p, link: l, source });
+        };
+
+        // Primary: scan anchors (common for product cards).
+        const anchors = Array.from(document.querySelectorAll('a[href]')) as HTMLAnchorElement[];
+        for (const a of anchors) {
+          if (out.length >= limit) break;
+          const href = a.getAttribute('href') || '';
+          if (!href) continue;
+          const abs = toAbs(href, baseUrl);
+          if (!hrefLooksLikeProduct(abs) && !hrefLooksLikeProduct(href)) continue;
+
+          const text = normalize(a.innerText || a.textContent || '');
+          if (!text) continue;
+          const m = text.match(priceRe);
+          if (!m) continue;
+          const price = m[0].replace(/\s+/g, '');
+          const title = pickTitle(text);
+          push(title, price, abs, 'a[href]');
+        }
+
+        // Fallback: scan price-like nodes and lift to a nearby clickable container.
+        if (out.length < limit) {
+          const all = Array.from(document.querySelectorAll('body *')) as HTMLElement[];
+          let scanned = 0;
+          for (const el of all) {
+            if (out.length >= limit) break;
+            if (scanned++ > maxScan) break;
+            const raw = normalize(el.textContent || '');
+            if (!raw) continue;
+            const m = raw.match(priceRe);
+            if (!m) continue;
+            const price = m[0].replace(/\s+/g, '');
+            let cur: HTMLElement | null = el;
+            let hop = 0;
+            let link = '';
+            while (cur && hop++ < 6) {
+              const a = cur.closest && (cur.closest('a[href]') as HTMLAnchorElement | null);
+              if (a && a.getAttribute('href')) {
+                link = toAbs(a.getAttribute('href') || '', baseUrl);
+                break;
+              }
+              cur = cur.parentElement;
+            }
+            const title = pickTitle(raw);
+            push(title, price, link, 'price-node');
+          }
+        }
+
+        return out.slice(0, limit);
+      },
+      { limit, baseUrl: options.baseUrl ?? page.url(), maxScan: 5000 }
+    );
+
+    if (capturePrefix && captureOnDone) {
+      const cap = await captureArtifacts(`${capturePrefix}_done`, {
+        captureFullPage,
+        includeHtml,
+        includeElements,
+        maxElements,
+      });
+      trace({ event: 'searchProductsHeuristic.capture.done', url: page.url(), ...cap });
+    }
+
+    trace({ event: 'searchProductsHeuristic.end', url: page.url(), count: out.length });
+    return out as SearchResultRecord[];
   }
 
   private async tryClick(selector: string, timeout: number): Promise<void> {

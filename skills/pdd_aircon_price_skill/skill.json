@@ -1,0 +1,13 @@
+{
+  "name": "pdd_aircon_price_skill",
+  "version": "0.1.0",
+  "description": "Pinduoduo air-conditioner price scraper (Playwright). Opens PDD H5 search, pauses for human verification if blocked, then heuristically extracts items with prices.",
+  "entry": "main:run",
+  "capabilities": {
+    "network": true,
+    "browser": true,
+    "node": true,
+    "human_in_loop": true
+  }
+}
+

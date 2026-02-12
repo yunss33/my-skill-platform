@@ -15,48 +15,53 @@ def run(ctx) -> dict[str, Any]:
     keyword = str(cfg.get("keyword") or "空调").strip()
     limit = int(cfg.get("limit") or 12)
 
-    search_url = f"https://search.jd.com/Search?keyword={quote(keyword)}&enc=utf-8"
+    # PDD H5 search (often triggers captcha; requires human-in-loop).
+    search_url = f"https://mobile.yangkeduo.com/search_result.html?search_key={quote(keyword)}"
 
-    # Prefer a persistent user profile directory for JD (more "browser-like").
+    # Prefer a persistent Playwright userDataDir profile for PDD (more "browser-like").
     account_raw = str(cfg.get("profileAccount") or cfg.get("account") or cfg.get("profile") or "default").strip()
     account = re.sub(r"[^A-Za-z0-9._-]+", "_", account_raw) or "default"
-    profile_dir = (ctx.platform.deps_dir / "browser_profiles" / "jd" / account).resolve()
+    profile_dir = (ctx.platform.deps_dir / "browser_profiles" / "pdd" / account).resolve()
     profile_dir.mkdir(parents=True, exist_ok=True)
 
-    # Persist login snapshot across runs via Playwright storageState.
-    # NOTE: this is NOT your system Edge profile; it is a Playwright storageState JSON snapshot.
-    storage_state_path = (ctx.platform.deps_dir / "storage_states" / "jd" / f"{account}.json").resolve()
+    # Persist a storageState snapshot too (useful for backup/export; userDataDir is the main reuse mechanism).
+    storage_state_path = (ctx.platform.deps_dir / "storage_states" / "pdd" / f"{account}.json").resolve()
     storage_state_path.parent.mkdir(parents=True, exist_ok=True)
 
     payload: dict[str, Any] = {
-        # action wiring (Node)
+        # Action wiring (Node)
         "searchUrl": search_url,
-        "resultsWaitFor": "#J_goodsList .gl-item",
-        "waitForLoadState": "domcontentloaded",
-        "resultsTimeout": int(cfg.get("resultsTimeout") or 60000),
+        # Wait until any visible price-like token shows up (Playwright selector, not CSS).
+        "resultsWaitFor": str(cfg.get("resultsWaitFor") or r"text=/[￥¥]\s*\d/"),
+        "waitForLoadState": str(cfg.get("waitForLoadState") or "domcontentloaded"),
+        "resultsTimeout": int(cfg.get("resultsTimeout") or 120000),
         "afterSearchDelayMs": int(cfg.get("afterSearchDelayMs") or 2500),
         "limit": limit,
-        "screenshotPath": str((ctx.outputs_dir / "screenshots" / "jd_search.png").resolve()),
+        "scrollSteps": int(cfg.get("scrollSteps") or 4),
+        "scrollDelayMs": int(cfg.get("scrollDelayMs") or 900),
+        "screenshotPath": str((ctx.outputs_dir / "screenshots" / "pdd_search.png").resolve()),
         # Optional: capture page artifacts (screenshot + html + elements) for AI debugging / replay.
-        "capturePrefix": str((ctx.outputs_dir / "captures" / "jd_search").resolve()),
+        "capturePrefix": str((ctx.outputs_dir / "captures" / "pdd_search").resolve()),
         "captureFullPage": bool(cfg.get("captureFullPage", True)),
         "includeHtml": bool(cfg.get("includeHtml", True)),
         "includeElements": bool(cfg.get("includeElements", True)),
-        "maxElements": int(cfg.get("maxElements") or 250),
+        "maxElements": int(cfg.get("maxElements") or 350),
         "captureOnBlocked": bool(cfg.get("captureOnBlocked", True)),
         "captureOnDone": bool(cfg.get("captureOnDone", True)),
         "detectBlockers": bool(cfg.get("detectBlockers", True)),
         # Pace controls (best-effort)
-        "stepDelayMs": int(cfg.get("stepDelayMs") or 600),
-        "stepDelayJitterMs": int(cfg.get("stepDelayJitterMs") or 400),
-        "list": {
-            "itemSelector": "#J_goodsList .gl-item",
-            "fields": {
-                "title": {"selector": ".p-name em", "attr": "text"},
-                "price": {"selector": ".p-price i", "attr": "text"},
-                "link": {"selector": ".p-name a", "attr": "href"},
-            },
-        },
+        "stepDelayMs": int(cfg.get("stepDelayMs") or 700),
+        "stepDelayJitterMs": int(cfg.get("stepDelayJitterMs") or 500),
+        # Human-in-the-loop
+        "pauseForHuman": bool(cfg.get("pauseForHuman", True)),
+        # Prefer auto polling by default: user solves captcha in the visible browser; skill continues when ready.
+        "pauseForHumanMode": str(cfg.get("pauseForHumanMode") or "auto"),
+        "pauseTimeoutMs": int(cfg.get("pauseTimeoutMs") or 0),
+        "pauseMessage": cfg.get("pauseMessage")
+        or "拼多多可能会出现验证码/安全验证。请在弹出的浏览器里完成验证/登录后，保持页面不关闭；脚本会在检测到价格内容出现后继续抓取。",
+        # Trace
+        "tracePath": str((ctx.outputs_dir / "rpa_trace.jsonl").resolve()),
+        "traceAppend": False,
         # Browser
         "headless": bool(cfg.get("headless", False)),
         "channel": cfg.get("channel") or "msedge",
@@ -64,38 +69,26 @@ def run(ctx) -> dict[str, Any]:
         "args": cfg.get("args") or [],
         "viewport": cfg.get("viewport", None),
         "userDataDir": str(profile_dir),
-        # Load existing session if present, and always save updated state after a successful run.
         "storageStatePath": str(storage_state_path) if storage_state_path.exists() else None,
         "saveStorageStatePath": str(storage_state_path),
-        # Human-in-the-loop
-        "pauseForHuman": bool(cfg.get("pauseForHuman", True)),
-        # In heavily-protected flows (JD risk pages), "enter" mode is more reliable than blind polling.
-        "pauseForHumanMode": str(cfg.get("pauseForHumanMode") or "enter"),
-        "pauseTimeoutMs": int(cfg.get("pauseTimeoutMs") or 0),
-        "pauseMessage": cfg.get("pauseMessage")
-        or "京东可能会出现安全验证/登录。请在浏览器里完成验证后，保持页面不关闭；skill 会自动检测到商品列表出现后继续抓取价格...",
-        # Trace
-        "tracePath": str((ctx.outputs_dir / "rpa_trace.jsonl").resolve()),
-        "traceAppend": False,
     }
 
-    # Avoid sending null keys that confuse some JS code paths.
     if payload.get("storageStatePath") is None:
         payload.pop("storageStatePath", None)
 
-    out = run_rpaskill_ts(ctx, action="searchOnSite", payload=payload)
+    out = run_rpaskill_ts(ctx, action="searchProductsHeuristic", payload=payload)
 
     # Write a stable pointer so the agent can locate artifacts without the user pasting paths/screenshots.
     try:
-        skill_root = ctx.platform.root_dir / "outputs" / "jd_aircon_price_skill"
+        skill_root = ctx.platform.root_dir / "outputs" / "pdd_aircon_price_skill"
         skill_root.mkdir(parents=True, exist_ok=True)
         marker_path = skill_root / "_latest.json"
         marker = {
             "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-            "skill": "jd_aircon_price_skill",
+            "skill": "pdd_aircon_price_skill",
             "run_id": str(ctx.run_id),
             "agent_id": str(ctx.agent_id),
-            "action": "searchOnSite",
+            "action": "searchProductsHeuristic",
             "paths": {
                 "outputs_dir": str(Path(ctx.outputs_dir).resolve()),
                 "shared_dir": str(Path(ctx.shared_dir).resolve()),
@@ -109,6 +102,7 @@ def run(ctx) -> dict[str, Any]:
                 "resultsWaitFor": payload.get("resultsWaitFor"),
                 "pauseForHuman": payload.get("pauseForHuman"),
                 "pauseForHumanMode": payload.get("pauseForHumanMode"),
+                "scrollSteps": payload.get("scrollSteps"),
                 "stepDelayMs": payload.get("stepDelayMs"),
                 "stepDelayJitterMs": payload.get("stepDelayJitterMs"),
             },
@@ -117,24 +111,6 @@ def run(ctx) -> dict[str, Any]:
     except Exception:
         pass
 
-    # Index the session state if it was saved.
-    if storage_state_path.exists():
-        ctx.artifacts.record_path(
-            storage_state_path,
-            scope="agent",
-            kind="storage_state",
-            data={"site": "jd.com", "account": account},
-        )
-        try:
-            ctx.events.emit(
-                "session.saved",
-                message="JD storageState saved (for future runs)",
-                scope="agent",
-                data={"path": str(storage_state_path)},
-            )
-        except Exception:
-            pass
-
     # Persist a friendly, stable artifact for later AI querying.
-    ctx.artifacts.write_json("jd_aircon_prices.json", out, scope="agent")
+    ctx.artifacts.write_json("pdd_aircon_prices.json", out, scope="agent")
     return {"status": "ok", "keyword": keyword, "searchUrl": search_url, "result": out}

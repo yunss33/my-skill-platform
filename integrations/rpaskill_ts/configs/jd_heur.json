@@ -1,0 +1,17 @@
+{
+    "waitForLoadState":  "domcontentloaded",
+    "scrollSteps":  1,
+    "capturePrefix":  "artifacts/jd_heur",
+    "scrollDelayMs":  300,
+    "resultsTimeout":  60000,
+    "captureFullPage":  false,
+    "stepDelayJitterMs":  0,
+    "limit":  5,
+    "pauseForHuman":  false,
+    "stepDelayMs":  0,
+    "resultsWaitFor":  "text=/[￥¥]\\\\s*\\\\d/",
+    "searchUrl":  "https://search.jd.com/Search?keyword=%E7%A9%BA%E8%B0%83\u0026enc=utf-8",
+    "afterSearchDelayMs":  1000,
+    "includeHtml":  false,
+    "includeElements":  false
+}

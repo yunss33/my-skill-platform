@@ -18,6 +18,13 @@ logFormat: jsonl
 headless: false
 channel: msedge
 
+# Reuse login/session across runs (Playwright persistent profile directory).
+# userDataDir: "D:\\Skill\\SkillBox\\my-skill-platform\\runtime\\deps\\browser_profiles\\adaptive_search"
+#
+# If you need multiple independent login states (e.g., multiple sites + multiple accounts), set:
+# profileSite: "pdd"        # e.g. pdd / jd / cnki
+# profileAccount: "acc_a"   # e.g. acc_a / acc_b
+
 # Optional screenshots (recommended for traceability)
 # screenshotPrefix: "D:\\Skill\\SkillBox\\my-skill-platform\\outputs\\...\\screenshots\\search"
 # openScreenshotPrefix: "D:\\Skill\\SkillBox\\my-skill-platform\\outputs\\...\\screenshots\\open"

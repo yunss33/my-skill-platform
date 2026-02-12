@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -115,6 +116,31 @@ def run(ctx) -> dict[str, Any]:
     action = str(action)
 
     input_payload = dict(cfg)
+
+    # Optional multi-login support:
+    # If the caller provides profileSite/profileAccount (or site/account), we map that to a stable
+    # Playwright persistent profile directory. This enables "reuse login state" across runs.
+    # Convention:
+    #   runtime/deps/browser_profiles/<site>/<account>/
+    profile_site_raw = str(input_payload.get("profileSite") or input_payload.get("site") or "").strip()
+    profile_account_raw = str(
+        input_payload.get("profileAccount") or input_payload.get("account") or input_payload.get("profile") or ""
+    ).strip()
+    if (profile_site_raw or profile_account_raw) and not input_payload.get("userDataDir"):
+        profile_site = re.sub(r"[^A-Za-z0-9._-]+", "_", profile_site_raw or "default_site") or "default_site"
+        profile_account = re.sub(r"[^A-Za-z0-9._-]+", "_", profile_account_raw or "default") or "default"
+        profile_dir = (ctx.platform.deps_dir / "browser_profiles" / profile_site / profile_account).resolve()
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        input_payload["userDataDir"] = str(profile_dir)
+
+        # Also keep a storageState snapshot updated (useful for backup/export; userDataDir is the main mechanism).
+        storage_state_path = (ctx.platform.deps_dir / "storage_states" / profile_site / f"{profile_account}.json").resolve()
+        storage_state_path.parent.mkdir(parents=True, exist_ok=True)
+        if storage_state_path.exists() and not input_payload.get("storageStatePath"):
+            input_payload["storageStatePath"] = str(storage_state_path)
+        # Always attempt to save an updated snapshot after the run (works for non-session runs;
+        # session runs will save it best-effort via run_rpaskill_ts_session).
+        input_payload.setdefault("saveStorageStatePath", str(storage_state_path))
 
     # Session mode: keep a single browser open across multiple invocations within the same run_id.
     # This is the main path for "human-in-the-loop" login/captcha workflows where you want to keep

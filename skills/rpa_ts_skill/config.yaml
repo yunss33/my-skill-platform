@@ -20,6 +20,13 @@ channel: msedge
 # If you want to pin a specific browser binary instead of `channel`, set this:
 # executablePath: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
 
+# Optional: reuse login state (multi-site + multi-account)
+# Convention:
+#   runtime/deps/browser_profiles/<profileSite>/<profileAccount>/
+# Example:
+# profileSite: "pdd"
+# profileAccount: "acc_a"
+
 # Optional: make the browser window feel more "human"
 # args: ["--start-maximized"]
 # viewport: null
@@ -31,7 +38,7 @@ perPage: 10
 details: 2
 
 # inspectPage options (when action: inspectPage)
-url: "https://www.jd.com"
+url: "https://2.taobao.com/"
 waitUntil: "domcontentloaded" # load | domcontentloaded | networkidle
 waitForSelector: "body"
 captureFullPage: true
@@ -39,4 +46,3 @@ includeHtml: true
 includeAccessibility: false
 includeElements: true
 detectBlockers: true
-

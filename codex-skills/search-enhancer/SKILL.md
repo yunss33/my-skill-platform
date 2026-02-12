@@ -1,6 +1,6 @@
 ﻿---
 name: search-enhancer
-description: Enhance search quality and question formulation. Use when users ask for stronger search, multi-round query planning, clarification questions, adaptiveSearch execution, or audit logging of search decisions in this repo.
+description: Enhance search quality and question formulation. Use when users ask for stronger search, multi-round query planning, clarification questions, adaptiveSearch execution, click-through (open results) verification, screenshot/HTML-based analysis, or audit logging of search decisions in this repo.
 ---
 
 # Search Enhancer - Codex Multi-Agent Skill
@@ -28,6 +28,23 @@ description: Enhance search quality and question formulation. Use when users ask
 目标：能复盘“为什么这么搜、哪一轮最好、证据来自哪里”。
 
 优先用本 repo 的 TS 集成 `adaptiveSearch`（带 audit logs），并把日志落到可检索的位置。
+
+#### 关键增强：不要把搜索当数据库（要“适度点开验证”）
+很多 SERP（搜索结果页）标题/摘要不完整，甚至标题缺失或很“正常/泛”，但点进详情页才有关键内容。
+因此：**拿到搜索结果后，要用有限预算“点开一部分结果”做验证与补漏**，再决定结论与证据。
+
+点击/打开的原则（Click-through budget）：
+- 每轮至少打开 `2` 个结果（必要时提高到 `3-5`），并**包含 1 个“不确定但可能有料”的结果**（避免只点“看起来最像答案”的）。
+- 标题缺失/很泛（如“首页/详情/正文”）时，改用 `域名 + URL 路径 + 摘要片段` 决策是否点开。
+- 追求“证据面”而非“命中率”：优先覆盖不同来源类型（官方文档/论文/新闻/论坛/代码仓库）。
+
+在本 repo 里怎么做（可直接复制）：
+1) 用平台 skill 跑 `adaptive_search_skill`，开启详情页打开：
+   - `--set details=2`（或更高）
+   - 建议同时开启截图：`--set openScreenshotPrefix="...\\screenshots\\open"`（便于后续 AI/人复盘）
+2) 对少量关键链接做“截图 + HTML”取证（当需要看页面结构/内容而不是只看摘要）：
+   - 用 `rpa_ts_skill` 的 `action=inspectPage` 获取 `*_screenshot.png` + `*_page.html` + `*_a11y.aria.yml` + `*_elements.json`
+   - 让 AI 基于截图与 HTML 做内容判断（例如：是否有关键段落/表格、是否被重定向、是否是广告页/聚合页）
 
 ## 本 repo 中的代码落点（Where）
 
@@ -83,6 +100,5 @@ python run.py --skill web_search_skill --root . --run-id demo --agent agent1
 无论用哪种方式，最终输出应包含：
 - goal（选了什么 + 为什么）
 - 最佳轮次（best round）摘要
-- 3-5 条最关键证据（标题+来源域名+链接）
+- 3-5 条最关键证据（标题+来源域名+链接），**优先来自“点开后的详情页”而非仅 SERP**
 - 复盘信息：搜索关键词/过滤条件/迭代原因（来自 events/memory）
-
